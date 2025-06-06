@@ -212,7 +212,8 @@ jobs:
         run: |
           SLVERSION=$(curl -X GET "https://redhat.sealights.co/api/v2/agents/slnodejs/recommended" -H "accept: application/json" -H "Authorization: Bearer $SEALIGHTS_AGENT_TOKEN" -L)
           # Install Sealights Agent (Recommended version)
-          npm i slnodejs@$SLVERSION
+          echo "$SLVERSION"
+          npm i slnodejs@6.1.1042
         env:
           SEALIGHTS_AGENT_TOKEN: ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
 
