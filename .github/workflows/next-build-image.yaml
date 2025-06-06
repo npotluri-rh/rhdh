@@ -162,10 +162,26 @@
 #             docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
 
 name: Build, Test (Turbo) and Upload Coverage to SeaLights
+# on:
+#   # workflow_dispatch so that it can be triggered manually if needed
+#   workflow_dispatch:
+#   schedule:
+#     # run at 3:18 UTC every day
+#     - cron: "18 3 * * *"
+#   push:
+#     tags:
+#       - '[0-9]+.[0-9]+.[0-9]+'
 
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: true
 on:
+  workflow_dispatch:
+  schedule:
+  # run at 3:18 UTC every day
+    - cron: "* 3 * * *"
   push:
-    branches: [ main ]
+    branches: [ saelights-steps ]
   # pull_request:
   #   branches: [ main ]
 
