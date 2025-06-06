@@ -203,13 +203,16 @@ jobs:
 
       - name: Install dependencies (including Turborepo globally or locally)
         run: |
-          yarn install --frozen-lockfile # Or your package manager's install command
+          yarn install --immutable-cache # Or your package manager's install command
           # If turbo is not part of your devDependencies and needs to be global:
           npm install -g turbo
           # Or ensure it's available via npx if listed in devDependencies
 
       - name: Install SeaLights Agent
-        run: yarn add --dev @sealights/slnodejs # Or npm install --save-dev @sealights/slnodejs
+        run: |
+          SLVERSION=$(curl -X GET "https://redhat.sealights.co/api/v2/agents/slnodejs/recommended" -H "accept: application/json" -H "Authorization: Bearer $SL_TOKEN" -L)
+          # Install Sealights Agent (Recommended version)
+          npm i slnodejs@$SLVERSION
 
       # Step 1: SeaLights Build Scan
       - name: Generate Build Session ID & Run SeaLights Build Scan
