@@ -217,7 +217,6 @@ jobs:
       - name: Generate Build Session ID & Run SeaLights Build Scan
         env:
           SEALIGHTS_AGENT_TOKEN: ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
-          SL_LAB_ID: "np-local-run"
           SL_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
           SL_APP_NAME: "rhdh"
         run: |
@@ -230,7 +229,6 @@ jobs:
 
           npx slnodejs config --token $SEALIGHTS_AGENT_TOKEN \
                               --bsid $BUILD_SESSION_ID \
-                              --labid "$SL_LAB_ID" \
                               --appname "$SL_APP_NAME" \
                               --branch "${{ github.head_ref || github.ref_name }}" \
                               --build "${{ github.run_id }}-${{ github.run_attempt }}" \
@@ -246,7 +244,6 @@ jobs:
         env:
           SEALIGHTS_AGENT_TOKEN: ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
           BUILD_SESSION_ID: ${{ env.BUILD_SESSION_ID }}
-          SL_LAB_ID: "np-local-run"
           SL_APP_NAME: "rhdh"
           # NODE_OPTIONS may still be needed depending on the underlying test runner (e.g., Jest)
           # NODE_OPTIONS: "--require @sealights/slnodejs/build/sealights-jest-preload.js" # If Jest is used under the hood
