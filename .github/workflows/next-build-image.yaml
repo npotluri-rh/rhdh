@@ -232,7 +232,6 @@ jobs:
                               --appname "$SL_APP_NAME" \
                               --branch "${{ github.head_ref || github.ref_name }}" \
                               --build "${{ github.run_id }}-${{ github.run_attempt }}" \
-                              --scmProvider Github  \
                               --workspacepath . # Adjust if your Turborepo root or relevant package is elsewhere
 
           # For Turborepo, you might scan the entire repo or specific packages.
