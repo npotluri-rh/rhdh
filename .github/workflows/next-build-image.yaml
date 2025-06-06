@@ -231,7 +231,7 @@ jobs:
                               --bsid $BUILD_SESSION_ID \
                               --appname "$SL_APP_NAME" \
                               --branch "${{ github.head_ref || github.ref_name }}" \
-                              --build "${{ github.run_id }}-${{ github.run_attempt }}"
+                              --build $BUILD_SESSION_ID
 
           # For Turborepo, you might scan the entire repo or specific packages.
           # If scanning the whole repo and tests run per package, ensure SeaLights understands the context.
