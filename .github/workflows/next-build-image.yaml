@@ -232,8 +232,8 @@ jobs:
                               --bsid $BUILD_SESSION_ID \
                               --labid "$SL_LAB_ID" \
                               --appname "$SL_APP_NAME" \
-                              --branchname "${{ github.head_ref || github.ref_name }}" \
-                              --buildname "${{ github.run_id }}-${{ github.run_attempt }}" \
+                              --branch "${{ github.head_ref || github.ref_name }}" \
+                              --build "${{ github.run_id }}-${{ github.run_attempt }}" \
                               --scm git \
                               --workspacepath . # Adjust if your Turborepo root or relevant package is elsewhere
 
