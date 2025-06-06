@@ -206,17 +206,11 @@ jobs:
           yarn install --immutable # Or your package manager's install command
           # If turbo is not part of your devDependencies and needs to be global:
           npm install -g turbo
-          npm i slnodejs@6.1.1042
           # Or ensure it's available via npx if listed in devDependencies
 
       - name: Install SeaLights Agent
         run: |
-          SLVERSION=$(curl -X GET "https://redhat.sealights.co/api/v2/agents/slnodejs/recommended" -H "accept: application/json" -H "Authorization: Bearer $SEALIGHTS_AGENT_TOKEN" -L)
-          # Install Sealights Agent (Recommended version)
-          echo $SLVERSION
-          #npm i slnodejs@6.1.1042
-        env:
-          SEALIGHTS_AGENT_TOKEN: ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
+          npm install slnodejs@@6.1.1042
 
       # Step 1: SeaLights Build Scan
       - name: Generate Build Session ID & Run SeaLights Build Scan
