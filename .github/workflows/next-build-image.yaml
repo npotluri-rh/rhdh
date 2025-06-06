@@ -211,7 +211,7 @@ jobs:
       - name: Install SeaLights Agent
         run: |
           npm show slnodejs dist-tags
-          npm install slnodejs@@6.1.1039
+          npm install slnodejs@latest
 
       # Step 1: SeaLights Build Scan
       - name: Generate Build Session ID & Run SeaLights Build Scan
