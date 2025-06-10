@@ -92,7 +92,8 @@
     "@backstage/plugin-auth-node@^0.4.16": "patch:@backstage/plugin-auth-node@npm%3A0.6.0#./.yarn/patches/@backstage-plugin-auth-node-npm-0.6.0-69f2f0dc3f.patch"
   },
   "jest": {
-    "testTimeout": 20000
+    "testTimeout": 20000,
+    "reporters": [ "default", "jest-junit" ]
   },
   "packageManager": "yarn@3.8.7"
 }

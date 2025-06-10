@@ -15,7 +15,10 @@
 name: PR
 
 on:
-  pull_request:
+  pull_request_target:
+      types: [opened, synchronize, reopened, ready_for_review]
+      branches: 
+      - main
 
 env:
   TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
@@ -26,9 +29,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  authorize:
+    # The 'external' environment is configured with the odo-maintainers team as required reviewers.
+    # All the subsequent jobs in this workflow 'need' this job, which will require manual approval for PRs coming from external forks.
+    # see list of approvers in OWNERS file
+    environment:
+      ${{ (github.event.pull_request.head.repo.full_name == github.repository ||
+        contains(fromJSON('["subhashkhileri","nickboldt","rm3l","openshift-cherrypick-robot"]'), github.actor)) && 'internal' || 'external' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: approved
+        run: |
+          echo "✓"
+
   build:
     name: Build with Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
+    needs: authorize
     strategy:
       matrix:
         node-version: [22]
@@ -71,6 +88,7 @@ jobs:
   test:
     name: Test with Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
+    needs: authorize
     strategy:
       matrix:
         node-version: [22]
@@ -125,6 +143,38 @@ jobs:
             echo "ERROR: Workspace is dirty! Must run 'yarn build:dockerfile' and commit changes!"; exit 1; \
           fi
 
+      - name: Install jest-junit
+        run: yarn add --dev jest-junit
+
+      - name: Install istanbul-merge
+        run: yarn add --dev istanbul-merge
+
+      - name: Install SeaLights Agent
+        run: |
+          npm show slnodejs dist-tags
+          npm install slnodejs@latest
+
+      - name: SeaLights config
+        env:
+          SEALIGHTS_AGENT_TOKEN: ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
+          SL_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+          SL_APP_NAME: "rhdh"
+        run: |
+          if [ -n "${{ github.event.pull_request.number }}" ]; then
+            BUILD_SESSION_ID="pr-${{ github.event.pull_request.number }}-${{ github.sha }}"
+          else
+            BUILD_SESSION_ID="build-${{ github.sha }}"
+          fi
+          echo "BUILD_SESSION_ID=${BUILD_SESSION_ID}" >> $GITHUB_ENV
+
+          npx slnodejs prConfig --appName rhdh --targetBranch  $SL_BRANCH_NAME --repositoryUrl ${{ github.event.pull_request.head.repo.clone_url }} --latestCommit ${{ env.SHORT_SHA }} --pullRequestNumber ${{ github.event.number }} --token $SEALIGHTS_AGENT_TOKEN
+
+      - name: SeaLights initial scan
+        run: npx slnodejs scan --buildsessionid $BUILD_SESSION_ID --scm git --workspacepath "." --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }} --babylonPlugins "jsx,typescript"
+
+      - name: SeaLights tests start
+        run: npx slnodejs start --teststage unittests --buildsessionid $BUILD_SESSION_ID --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
+
       - name: Run tests
         if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
         run: yarn run test --continue --affected
@@ -136,3 +186,15 @@ jobs:
       - name: Verify dynamic plugin wrappers
         if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
         run: cd ./dynamic-plugins && yarn test && cd ..
+
+      - name: SeaLights upload results
+        run: npx slnodejs uploadReports --teststage unittests --buildsessionid $BUILD_SESSION_ID --reportfile packages/backend/junit.xml --reportfile packages/app/junit.xml --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
+
+      - name: Merge tests coverage reports
+        run: npx  istanbul-merge --out coverage.json packages/backend/coverage/coverage-final.json packages/app/coverage/coverage-final.json
+
+      - name: SeaLights upload coverage
+        run: npx slnodejs nycReport --teststage unittests --buildsessionid $BUILD_SESSION_ID --report coverage.json --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
+
+      - name: SeaLights tests end
+        run: npx slnodejs end --buildsessionid $BUILD_SESSION_ID --token ${{ secrets.SL_TOKEN }}
