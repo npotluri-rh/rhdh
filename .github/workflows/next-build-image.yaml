@@ -49,6 +49,7 @@ jobs:
           SEALIGHTS_AGENT_TOKEN: ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
           SL_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
           SL_APP_NAME: "rhdh"
+          NODE_DEBUG: sl
         run: |
           if [ -n "${{ github.event.pull_request.number }}" ]; then
             BUILD_SESSION_ID="pr-${{ github.event.pull_request.number }}-${{ github.sha }}"
@@ -63,6 +64,8 @@ jobs:
                               --build $BUILD_SESSION_ID
 
       - name: SeaLights initial scan
+        env:
+          NODE_DEBUG: sl
         run: npx slnodejs scan --buildsessionid $BUILD_SESSION_ID --scm git --workspacepath "." --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }} --babylonPlugins "jsx,typescript"
 
       - name: SeaLights tests start
