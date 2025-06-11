@@ -42,8 +42,8 @@ jobs:
           node-version: ${{ matrix.node-version }}
           registry-url: "https://registry.npmjs.org"
 
-      - name: Setup local Turbo cache
-        uses: dtinth/setup-github-actions-caching-for-turbo@cc723b4600e40a6b8815b65701d8614b91e2669e # v1
+      # - name: Setup local Turbo cache
+      #   uses: dtinth/setup-github-actions-caching-for-turbo@cc723b4600e40a6b8815b65701d8614b91e2669e # v1
 
       - name: Use app-config.example.yaml
         run: rm app-config.yaml && mv app-config.example.yaml app-config.yaml
@@ -95,9 +95,7 @@ jobs:
 
       - name: Run tests
         run: |
-          #yarn install --immutable
-          #yarn run test --continue --affected
-          npx slnodejs test --teststage "Unit Tests" -- turbo run test
+          yarn run test --continue --affected
 
       # - name: Install dynamic plugin dependencies
       #   run: cd ./dynamic-plugins && yarn install && cd ..
