@@ -58,12 +58,9 @@ jobs:
           echo "BUILD_SESSION_ID=${BUILD_SESSION_ID}" >> $GITHUB_ENV
 
           npx slnodejs config --token $SEALIGHTS_AGENT_TOKEN \
-                              --buildsessionid $BUILD_SESSION_ID \
                               --appname $SL_APP_NAME \
                               --branch $SL_BRANCH_NAME \
                               --build $BUILD_SESSION_ID
-                              --scm git
-                              --workspacepath .
 
       - name: SeaLights initial scan
         run: npx slnodejs scan --buildsessionid $BUILD_SESSION_ID --scm git --workspacepath "." --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }} --babylonPlugins "jsx,typescript"
