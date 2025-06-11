@@ -10,86 +10,105 @@ on:
   pull_request:
     branches: [ saelights-steps ]
 
+env:
+  TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
+  TURBO_SCM_HEAD: ${{ github.sha }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-test:
+  build:
+    name: Build with Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        node-version: [22]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          fetch-depth: 0 # Necessary for SeaLights to correctly analyze git history for changed files
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Check Image and Relevant Changes
+        id: check-image
+        uses: ./.github/actions/check-image-and-changes
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22' # Specify your Node.js version
-          cache: 'yarn' # Or 'npm' or 'pnpm' depending on your lockfile
+          node-version: ${{ matrix.node-version }}
+          registry-url: "https://registry.npmjs.org"
 
-      - name: Install dependencies (including Turborepo globally or locally)
+      - name: Setup local Turbo cache
+        uses: dtinth/setup-github-actions-caching-for-turbo@cc723b4600e40a6b8815b65701d8614b91e2669e # v1
+
+      - name: Use app-config.example.yaml
+        run: rm app-config.yaml && mv app-config.example.yaml app-config.yaml
+
+      - name: Install dependencies
+        uses: backstage/actions/yarn-install@b3c1841fd69e1658ac631afafd0fb140a2309024 # v0.6.17
+        with:
+          cache-prefix: ${{ runner.os }}-v${{ matrix.node-version }}
+
+      - name: Build packages
+        run: yarn run build --continue --affected
+
+  test:
+    name: Test with Node.js ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Check Image and Relevant Changes
+        id: check-image
+        uses: ./.github/actions/check-image-and-changes
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup local Turbo cache
+        uses: dtinth/setup-github-actions-caching-for-turbo@cc723b4600e40a6b8815b65701d8614b91e2669e # v1
+
+      - name: Use app-config.example.yaml
+        run: rm app-config.yaml && mv app-config.example.yaml app-config.yaml
+
+      - name: Install dependencies
+        uses: backstage/actions/yarn-install@b3c1841fd69e1658ac631afafd0fb140a2309024 # v0.6.17
+        with:
+          cache-prefix: ${{ runner.os }}-v${{ matrix.node-version }}
+
+      - name: Run prettier
+        run: yarn prettier:check --continue --affected
+
+      - name: Run lint
+        run: yarn run lint:check --continue --affected
+
+      - name: Run monorepo tools
+        run: yarn run monorepo:check
+
+      - name: Regenerate dockerfiles
         run: |
-          yarn install --immutable # Or your package manager's install command
-          # If turbo is not part of your devDependencies and needs to be global:
-          npm install -g turbo
-          # Or ensure it's available via npx if listed in devDependencies
-
-      - name: Install jest-junit
-        run: yarn add --dev jest-junit
-
-      - name: Install istanbul-merge
-        run: yarn add --dev istanbul-merge
-
-      - name: Install SeaLights Agent
-        run: |
-          npm i slnodejs@6.1.1042
-
-      - name: Write SeaLights token into file
-        run: echo "${SEALIGHTS_AGENT_TOKEN}" > sltoken.txt
-        env:
-          SEALIGHTS_AGENT_TOKEN: '${{secrets.SEALIGHTS_AGENT_TOKEN}}'
-
-      - name: SeaLights config
-        env:
-          SEALIGHTS_AGENT_TOKEN: ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
-          SL_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-          SL_APP_NAME: "rhdh"
-          LATEST_COMMIT_SHA: ${{ github.sha }}
-        run: |
-          echo "BUILD_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
-          npx slnodejs config --tokenfile ./sltoken.txt --appname $SL_APP_NAME --branch $SL_BRANCH_NAME --build "$BUILD_TIME:$LATEST_COMMIT_SHA"
-
-      - name: SeaLights initial scan
-        run: npx slnodejs scan --buildsessionidfile buildSessionId --scm git --workspacepath "." --tokenfile ./sltoken.txt --babylonPlugins "jsx,typescript"
-
-      - name: SeaLights tests start
-        run: npx slnodejs start --teststage unittests --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
-
+          yarn run build:dockerfile; if [[ $(git diff --name-only | grep Dockerfile || true) != "" ]]; then \
+            echo "ERROR: Workspace is dirty! Must run 'yarn build:dockerfile' and commit changes!"; exit 1; \
+          fi
       - name: Run tests
-        #if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
-        run: |
-          yarn install --immutable
-          yarn run test --continue --affected
+        run: yarn run test --continue --affected
 
-      # - name: Install dynamic plugin dependencies
-      #   #if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
-      #   run: cd ./dynamic-plugins && yarn install && cd ..
+      - name: Install dynamic plugin dependencies
+        run: cd ./dynamic-plugins && yarn install && cd ..
 
-      # - name: Verify dynamic plugin wrappers
-      #   #if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
-      #   run: cd ./dynamic-plugins && yarn test && cd ..
-
-      - name: Merge tests coverage reports
-        run: npx  istanbul-merge --out coverage.json packages/backend/coverage/coverage-final.json packages/app/coverage/coverage-final.json
-
-      - name: SeaLights upload coverage
-        run: npx slnodejs nycReport --teststage unittests --buildsessionidfile buildSessionId --report coverage.json --tokenfile ./sltoken.txt
-      - name: SeaLights upload results
-        run: npx slnodejs uploadReports --teststage unittests --buildsessionidfile buildSessionId --reportfile packages/backend/junit.xml --reportfile packages/app/junit.xml --tokenfile ./sltoken.txt
-
-      - name: SeaLights tests end
-        run: npx slnodejs end --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
-
-      - name: Remove SeaLights secrets
-        run: |
-          echo "[SeaLights] Cleaning up after SeaLights run"
-          rm -f sltoken.txt
+      - name: Verify dynamic plugin wrappers
+        run: cd ./dynamic-plugins && yarn test && cd ..
