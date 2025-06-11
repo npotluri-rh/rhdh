@@ -58,7 +58,7 @@ jobs:
           echo "BUILD_SESSION_ID=${BUILD_SESSION_ID}" >> $GITHUB_ENV
 
           npx slnodejs config --token $SEALIGHTS_AGENT_TOKEN \
-                              --bsid $BUILD_SESSION_ID \
+                              --buildsessionid $BUILD_SESSION_ID \
                               --appname $SL_APP_NAME \
                               --branch $SL_BRANCH_NAME \
                               --build $BUILD_SESSION_ID
@@ -72,15 +72,15 @@ jobs:
         run: npx slnodejs start --teststage unittests --buildsessionid $BUILD_SESSION_ID --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
 
       - name: Run tests
-        if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
+        #if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
         run: yarn run test --continue --affected
 
       - name: Install dynamic plugin dependencies
-        if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
+        #if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
         run: cd ./dynamic-plugins && yarn install && cd ..
 
       - name: Verify dynamic plugin wrappers
-        if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
+        #if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
         run: cd ./dynamic-plugins && yarn test && cd ..
 
       - name: Merge tests coverage reports
