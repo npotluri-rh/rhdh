@@ -42,7 +42,12 @@ jobs:
       - name: Install SeaLights Agent
         run: |
           npm show slnodejs dist-tags
-          npm install slnodejs@latest
+          npm i slnodejs
+
+      - name: Write SeaLights token into file
+        run: echo "${SEALIGHTS_AGENT_TOKEN}" > sltoken.txt
+        env:
+          SEALIGHTS_AGENT_TOKEN: '${{secrets.SEALIGHTS_AGENT_TOKEN}}'
 
       - name: SeaLights config
         env:
@@ -50,30 +55,25 @@ jobs:
           SL_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
           SL_APP_NAME: "rhdh"
           NODE_DEBUG: sl
+          LATEST_COMMIT_SHA: ${{ github.sha }}
         run: |
-          if [ -n "${{ github.event.pull_request.number }}" ]; then
-            BUILD_SESSION_ID="pr-${{ github.event.pull_request.number }}-${{ github.sha }}"
-          else
-            BUILD_SESSION_ID="build-${{ github.sha }}"
-          fi
-          echo "BUILD_SESSION_ID=${BUILD_SESSION_ID}" >> $GITHUB_ENV
-
-          npx slnodejs config --token $SEALIGHTS_AGENT_TOKEN \
-                              --appname $SL_APP_NAME \
-                              --branch $SL_BRANCH_NAME \
-                              --build $BUILD_SESSION_ID
+          echo "BUILD_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
+          npx slnodejs config --tokenfile ./sltoken.txt --appname $SL_APP_NAME --branch $SL_BRANCH_NAME --build "$BUILD_TIME:$LATEST_COMMIT_SHA"
+          ls -ltra .
 
       - name: SeaLights initial scan
         env:
           NODE_DEBUG: sl
-        run: npx slnodejs scan --buildsessionid $BUILD_SESSION_ID --scm git --workspacepath "." --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }} --babylonPlugins "jsx,typescript"
+        run: npx slnodejs scan --buildsessionidfile buildSessionId --scm git --workspacepath "." --tokenfile ./sltoken.txt --babylonPlugins "jsx,typescript"
 
       - name: SeaLights tests start
-        run: npx slnodejs start --teststage unittests --buildsessionid $BUILD_SESSION_ID --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
+        run: npx slnodejs start --teststage unittests --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
 
       - name: Run tests
         #if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
-        run: yarn run test --continue --affected
+        run: |
+          yarn install --immutable
+          yarn run test --continue --affected
 
       - name: Install dynamic plugin dependencies
         #if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
@@ -87,9 +87,9 @@ jobs:
         run: npx  istanbul-merge --out coverage.json packages/backend/coverage/coverage-final.json packages/app/coverage/coverage-final.json
 
       - name: SeaLights upload coverage
-        run: npx slnodejs nycReport --teststage unittests --buildsessionid $BUILD_SESSION_ID --report coverage.json --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
+        run: npx slnodejs nycReport --teststage unittests --buildsessionidfile buildSessionId --report coverage.json --tokenfile ./sltoken.txt
       - name: SeaLights upload results
-        run: npx slnodejs uploadReports --teststage unittests --buildsessionid $BUILD_SESSION_ID --reportfile packages/backend/junit.xml --reportfile packages/app/junit.xml --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
+        run: npx slnodejs uploadReports --teststage unittests --buildsessionidfile buildSessionId --reportfile packages/backend/junit.xml --reportfile packages/app/junit.xml --tokenfile ./sltoken.txt
 
       - name: SeaLights tests end
-        run: npx slnodejs end --buildsessionid $BUILD_SESSION_ID --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
+        run: npx slnodejs end --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
