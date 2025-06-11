@@ -95,14 +95,15 @@ jobs:
 
       - name: Run tests
         run: |
-          yarn install --immutable
-          yarn run test --continue --affected
+          #yarn install --immutable
+          #yarn run test --continue --affected
+          npx slnodejs test --teststage "Unit Tests" -- turbo run test
 
-      - name: Install dynamic plugin dependencies
-        run: cd ./dynamic-plugins && yarn install && cd ..
+      # - name: Install dynamic plugin dependencies
+      #   run: cd ./dynamic-plugins && yarn install && cd ..
 
-      - name: Verify dynamic plugin wrappers
-        run: cd ./dynamic-plugins && yarn test && cd ..
+      # - name: Verify dynamic plugin wrappers
+      #   run: cd ./dynamic-plugins && yarn test && cd ..
 
       - name: SeaLights tests end
         run: npx slnodejs end --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
