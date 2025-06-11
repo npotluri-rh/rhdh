@@ -1,162 +1,95 @@
-# Copyright Red Hat, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-name: Build Next and Tag Image
+name: Build, Test (Turbo) and Upload Coverage to SeaLights
 
 on:
-  # workflow_dispatch so that it can be triggered manually if needed
   workflow_dispatch:
   schedule:
-    # run at 3:18 UTC every day
-    - cron: "18 3 * * *"
+  # run at 3:18 UTC every day
+    - cron: "* 3 * * *"
   push:
-    tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  REGISTRY: quay.io
-  REGISTRY_IMAGE: rhdh-community/rhdh
+    branches: [ test-pr ]
+  pull_request:
+    branches: [ saelights-steps ]
 
 jobs:
-  build-image:
-    name: Build Image
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-24.04-arm
-          - ubuntu-24.04
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
-      packages: write
+  build-and-test:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Necessary for SeaLights to correctly analyze git history for changed files
 
-      - name: Prepare
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22' # Specify your Node.js version
+          cache: 'yarn' # Or 'npm' or 'pnpm' depending on your lockfile
+
+      - name: Install dependencies (including Turborepo globally or locally)
         run: |
-          if [ "${{ matrix.os }}" == "ubuntu-24.04" ]; then
-            platform="linux/amd64"
-          elif [ "${{ matrix.os }}" == "ubuntu-24.04-arm" ]; then
-            platform="linux/arm64"
+          yarn install --immutable # Or your package manager's install command
+          # If turbo is not part of your devDependencies and needs to be global:
+          npm install -g turbo
+          # Or ensure it's available via npx if listed in devDependencies
+
+      - name: Install jest-junit
+        run: yarn add --dev jest-junit
+
+      - name: Install istanbul-merge
+        run: yarn add --dev istanbul-merge
+
+      - name: Install SeaLights Agent
+        run: |
+          npm show slnodejs dist-tags
+          npm install slnodejs@latest
+
+      - name: SeaLights config
+        env:
+          SEALIGHTS_AGENT_TOKEN: ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
+          SL_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+          SL_APP_NAME: "rhdh"
+        run: |
+          if [ -n "${{ github.event.pull_request.number }}" ]; then
+            BUILD_SESSION_ID="pr-${{ github.event.pull_request.number }}-${{ github.sha }}"
           else
-            echo "Unknown platform"
-            exit 1
+            BUILD_SESSION_ID="build-${{ github.sha }}"
           fi
+          echo "BUILD_SESSION_ID=${BUILD_SESSION_ID}" >> $GITHUB_ENV
 
-          ref_name=${{ github.ref_name }}
-          if [ "$ref_name" == "main" ]; then
-            ref_name="next"
-          fi
-          echo "REF_NAME=$ref_name" >> $GITHUB_ENV
-          echo "PLATFORM=$platform" >> $GITHUB_ENV
-          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
-          echo "PLATFORM_ARCH=${platform#*/}" >> $GITHUB_ENV
+          npx slnodejs config --token $SEALIGHTS_AGENT_TOKEN \
+                              --bsid $BUILD_SESSION_ID \
+                              --appname $SL_APP_NAME \
+                              --branch $SL_BRANCH_NAME \
+                              --build $BUILD_SESSION_ID
+                              --scm git
+                              --workspacepath .
 
-      - name: Get the last commit short SHA
-        uses: ./.github/actions/get-sha
+      - name: SeaLights initial scan
+        run: npx slnodejs scan --buildsessionid $BUILD_SESSION_ID --scm git --workspacepath "." --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }} --babylonPlugins "jsx,typescript"
 
-      - name: Build and Push with Buildx
-        uses: ./.github/actions/docker-build
-        id: build
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY_TOKEN }}
-          imageName: ${{ env.REGISTRY_IMAGE }}
-          imageTags: |
-            type=raw,value=${{ env.REF_NAME }}-${{ env.PLATFORM_ARCH }}
-            type=raw,value=${{ env.REF_NAME }}-${{ env.SHORT_SHA }}-${{ env.PLATFORM_ARCH }}
-          imageLabels: quay.expires-after=14d
-          push: true
-          platform: ${{ env.PLATFORM }}
+      - name: SeaLights tests start
+        run: npx slnodejs start --teststage unittests --buildsessionid $BUILD_SESSION_ID --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
 
-      - name: Export digest
-        run: |
-          mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+      - name: Run tests
+        if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
+        run: yarn run test --continue --affected
 
-      - name: Upload digest
-        uses: actions/upload-artifact@v4
-        with:
-          name: digests-${{ env.PLATFORM_PAIR }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
+      - name: Install dynamic plugin dependencies
+        if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
+        run: cd ./dynamic-plugins && yarn install && cd ..
 
-  merge:
-      runs-on: ubuntu-latest
-      needs:
-        - build-image
-      steps:
-        - name: Prepare
-          run: |
-            ref_name=${{ github.ref_name }}
-            if [ "$ref_name" == "main" ]; then
-              ref_name="next"
-            fi
-            echo "REF_NAME=$ref_name" >> $GITHUB_ENV
+      - name: Verify dynamic plugin wrappers
+        if: ${{ steps.check-image.outputs.is_skipped != 'true' }}
+        run: cd ./dynamic-plugins && yarn test && cd ..
 
-        - name: Checkout
-          uses: actions/checkout@v4
-          with:
-            fetch-depth: 0
+      - name: Merge tests coverage reports
+        run: npx  istanbul-merge --out coverage.json packages/backend/coverage/coverage-final.json packages/app/coverage/coverage-final.json
 
-        - name: Download digests
-          uses: actions/download-artifact@v4
-          with:
-            path: /tmp/digests
-            pattern: digests-*
-            merge-multiple: true
+      - name: SeaLights upload coverage
+        run: npx slnodejs nycReport --teststage unittests --buildsessionid $BUILD_SESSION_ID --report coverage.json --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
+      - name: SeaLights upload results
+        run: npx slnodejs uploadReports --teststage unittests --buildsessionid $BUILD_SESSION_ID --reportfile packages/backend/junit.xml --reportfile packages/app/junit.xml --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
 
-        - name: Get the last commit short SHA
-          uses: ./.github/actions/get-sha
-
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v3
-
-        - name: Docker meta
-          id: meta
-          uses: docker/metadata-action@v5
-          with:
-            images: ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}
-            tags: |
-              type=raw,value=${{ env.REF_NAME }}
-              type=raw,value=${{ env.REF_NAME }}-${{ env.SHORT_SHA }}
-
-        - name: Login to Docker Hub
-          uses: docker/login-action@v3
-          with:
-            registry: ${{ env.REGISTRY }}
-            username: ${{ secrets.QUAY_USERNAME }}
-            password: ${{ secrets.QUAY_TOKEN }}
-
-        - name: Create manifest list and push
-          working-directory: /tmp/digests
-          run: |
-            docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-              $(printf '${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
-
-        - name: Inspect image
-          run: |
-            docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
+      - name: SeaLights tests end
+        run: npx slnodejs end --buildsessionid $BUILD_SESSION_ID --token ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
