@@ -11,7 +11,7 @@ on:
     branches: [ saelights-steps ]
 
 env:
-  TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
+  TURBO_SCM_BASE: "${{ github.base_ref }}" #${{ github.event.pull_request.base.sha }}
   TURBO_SCM_HEAD: ${{ github.sha }}
 
 concurrency:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.sha }}
 
       - name: Check Image and Relevant Changes
         id: check-image
