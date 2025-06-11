@@ -19,42 +19,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build with Node.js ${{ matrix.node-version }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.sha }}
+  # build:
+  #   name: Build with Node.js ${{ matrix.node-version }}
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       node-version: [22]
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+  #       with:
+  #         fetch-depth: 0
+  #         ref: ${{ github.sha }}
 
-      # - name: Check Image and Relevant Changes
-      #   id: check-image
-      #   uses: ./.github/actions/check-image-and-changes
+  #     # - name: Check Image and Relevant Changes
+  #     #   id: check-image
+  #     #   uses: ./.github/actions/check-image-and-changes
 
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          registry-url: "https://registry.npmjs.org"
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+  #       with:
+  #         node-version: ${{ matrix.node-version }}
+  #         registry-url: "https://registry.npmjs.org"
 
-      - name: Setup local Turbo cache
-        uses: dtinth/setup-github-actions-caching-for-turbo@cc723b4600e40a6b8815b65701d8614b91e2669e # v1
+  #     - name: Setup local Turbo cache
+  #       uses: dtinth/setup-github-actions-caching-for-turbo@cc723b4600e40a6b8815b65701d8614b91e2669e # v1
 
-      - name: Use app-config.example.yaml
-        run: rm app-config.yaml && mv app-config.example.yaml app-config.yaml
+  #     - name: Use app-config.example.yaml
+  #       run: rm app-config.yaml && mv app-config.example.yaml app-config.yaml
 
-      - name: Install dependencies
-        uses: backstage/actions/yarn-install@b3c1841fd69e1658ac631afafd0fb140a2309024 # v0.6.17
-        with:
-          cache-prefix: ${{ runner.os }}-v${{ matrix.node-version }}
+  #     - name: Install dependencies
+  #       uses: backstage/actions/yarn-install@b3c1841fd69e1658ac631afafd0fb140a2309024 # v0.6.17
+  #       with:
+  #         cache-prefix: ${{ runner.os }}-v${{ matrix.node-version }}
 
-      - name: Build packages
-        run: yarn run build --continue --affected
+  #     - name: Build packages
+  #       run: yarn run build --continue --affected
 
   test:
     name: Test with Node.js ${{ matrix.node-version }}
@@ -90,20 +90,20 @@ jobs:
         with:
           cache-prefix: ${{ runner.os }}-v${{ matrix.node-version }}
 
-      # - name: Run prettier
-      #   run: yarn prettier:check --continue --affected
+      - name: Run prettier
+        run: yarn prettier:check --continue --affected
 
-      # - name: Run lint
-      #   run: yarn run lint:check --continue --affected
+      - name: Run lint
+        run: yarn run lint:check --continue --affected
 
-      # - name: Run monorepo tools
-      #   run: yarn run monorepo:check
+      - name: Run monorepo tools
+        run: yarn run monorepo:check
 
-      # - name: Regenerate dockerfiles
-      #   run: |
-      #     yarn run build:dockerfile; if [[ $(git diff --name-only | grep Dockerfile || true) != "" ]]; then \
-      #       echo "ERROR: Workspace is dirty! Must run 'yarn build:dockerfile' and commit changes!"; exit 1; \
-      #     fi
+      - name: Regenerate dockerfiles
+        run: |
+          yarn run build:dockerfile; if [[ $(git diff --name-only | grep Dockerfile || true) != "" ]]; then \
+            echo "ERROR: Workspace is dirty! Must run 'yarn build:dockerfile' and commit changes!"; exit 1; \
+          fi
 
       - name: Run tests
         run: yarn run test --continue --affected
