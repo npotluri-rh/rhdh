@@ -95,7 +95,7 @@ jobs:
 
       - name: Run tests
         run: |
-          yarn install
+          yarn install --immutable
           yarn run test --continue --affected
 
       - name: Install dynamic plugin dependencies
