@@ -70,7 +70,7 @@ jobs:
 
       - name: Install SeaLights Agent
         run: |
-          yarn add slnodejs@6.1.1042 --dev
+          yarn add jest-junit slnodejs@6.1.1042 --dev
 
       - name: Write SeaLights token into file
         run: echo "${SEALIGHTS_AGENT_TOKEN}" > sltoken.txt
