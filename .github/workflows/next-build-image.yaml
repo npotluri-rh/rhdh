@@ -90,7 +90,7 @@ jobs:
       - name: SeaLights initial scan
         env:
           SL_fileExtensions: ".js,.jsx,.ts,.tsx"
-          EXCLUDE: "public/**/*.js,files/**/*.js"
+          #EXCLUDE: "public/**/*.js,files/**/*.js"
           SCM_PROVIDER: "Github"
         run: npx slnodejs scan --buildsessionidfile buildSessionId --scm git --workspacepath "."  --tokenfile ./sltoken.txt
         #--excludedpaths "${EXCLUDE}" --projectroot "."
@@ -105,11 +105,11 @@ jobs:
         run: |
           yarn run test --continue --affected
 
-      # - name: Install dynamic plugin dependencies
-      #   run: cd ./dynamic-plugins && yarn install && cd ..
+      - name: Install dynamic plugin dependencies
+        run: cd ./dynamic-plugins && yarn install && cd ..
 
-      # - name: Verify dynamic plugin wrappers
-      #   run: cd ./dynamic-plugins && yarn test && cd ..
+      - name: Verify dynamic plugin wrappers
+        run: cd ./dynamic-plugins && yarn test && cd ..
 
       - name: SeaLights tests end
         run: npx slnodejs end --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
