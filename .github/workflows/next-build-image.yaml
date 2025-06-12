@@ -70,7 +70,7 @@ jobs:
 
       - name: Install SeaLights Agent
         run: |
-          npm i slnodejs@6.1.1042
+          yarn add slnodejs@6.1.1042 --dev
 
       - name: Write SeaLights token into file
         run: echo "${SEALIGHTS_AGENT_TOKEN}" > sltoken.txt
@@ -88,7 +88,15 @@ jobs:
           npx slnodejs config --tokenfile ./sltoken.txt --appname $SL_APP_NAME --branch $SL_BRANCH_NAME --build "$BUILD_TIME:$LATEST_COMMIT_SHA"
 
       - name: SeaLights initial scan
-        run: npx slnodejs scan --buildsessionidfile buildSessionId --scm git --workspacepath "." --tokenfile ./sltoken.txt --babylonPlugins "jsx,typescript"
+        env:
+          SL_fileExtensions: ".js,.jsx,.ts,.tsx"
+          EXCLUDE: "public/**/*.js,files/**/*.js"
+          SCM_PROVIDER: "Github"
+        run: npx slnodejs scan --buildsessionidfile buildSessionId --scm git --workspacepath "."  --tokenfile ./sltoken.txt
+        #--excludedpaths "${EXCLUDE}" --projectroot "."
+        #--instrumentForBrowsers --babylonPlugins "${BABYLON_PLUGINS}" --outputpath sl_build
+        #BABYLON_PLUGINS="jsx,typescript"
+        #BUILD_DIR_PATH="dist"
 
       - name: SeaLights tests start
         run: npx slnodejs start --teststage alltests --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
