@@ -97,7 +97,7 @@ jobs:
           SL_BUILD_DIR: "sl_dist"
           NODE_DEBUG: sl
           BABYLON_PLUGINS: "jsx,typescript"
-        run: npx slnodejs scan --buildsessionidfile buildSessionId --scm git --workspacepath ${BUILD_DIR}  --tokenfile ./sltoken.txt
+        run: npx slnodejs scan --buildsessionidfile buildSessionId --scm git --workspacepath .  --tokenfile ./sltoken.txt
         #--excludedpaths "${EXCLUDE}" --projectroot "."
         #--instrumentForBrowsers --babylonPlugins "${BABYLON_PLUGINS}" --outputpath sl_dist
 
