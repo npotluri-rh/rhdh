@@ -70,7 +70,7 @@ jobs:
 
       - name: Install SeaLights Agent
         run: |
-          yarn add jest-junit slnodejs@6.1.1042 --dev
+          yarn add jest-junit slnodejs@6.1.1042 istanbul-merge --dev
 
       - name: Write SeaLights token into file
         run: echo "${SEALIGHTS_AGENT_TOKEN}" > sltoken.txt
@@ -113,9 +113,8 @@ jobs:
 
       - name: SeaLights tests end
         run: |
-          ls -ltra test-results
-          head -10 test-results/junit-results.xml
-          npx slnodejs uploadReports --teststage alltests --buildsessionidfile buildSessionId --reportfile test-results/junit-results.xml --tokenfile ./sltoken.txt
+          npx istanbul-merge --out coverage.json packages/backend/coverage/coverage-final.json packages/app/coverage/coverage-final.json
+          npx slnodejs nycReport --teststage alltests --buildsessionidfile buildSessionId --reportfile coverage.json --tokenfile ./sltoken.txt
           npx slnodejs end --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
 
       - name: Remove SeaLights secrets
