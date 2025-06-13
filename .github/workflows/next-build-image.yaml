@@ -112,7 +112,11 @@ jobs:
         run: cd ./dynamic-plugins && yarn test && cd ..
 
       - name: SeaLights tests end
-        run: npx slnodejs end --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
+        run: |
+          ls -ltra test-results
+          head -10 test-results/junit-results.xml
+          npx slnodejs uploadReports --teststage alltests --buildsessionidfile buildSessionId --reportfile test-results/junit-results.xml --tokenfile ./sltoken.txt
+          npx slnodejs end --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
 
       - name: Remove SeaLights secrets
         run: |
