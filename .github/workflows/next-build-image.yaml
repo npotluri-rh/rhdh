@@ -70,7 +70,8 @@ jobs:
 
       - name: Install SeaLights Agent
         run: |
-          yarn add jest-junit slnodejs@6.1.1042 istanbul-merge --dev
+          yarn add jest-junit slnodejs@6.1.1042 --dev #istanbul-merge
+          yarn run build --continue --affected
 
       - name: Write SeaLights token into file
         run: echo "${SEALIGHTS_AGENT_TOKEN}" > sltoken.txt
@@ -92,11 +93,13 @@ jobs:
           SL_fileExtensions: ".js,.jsx,.ts,.tsx"
           #EXCLUDE: "public/**/*.js,files/**/*.js"
           SCM_PROVIDER: "Github"
-        run: npx slnodejs scan --buildsessionidfile buildSessionId --scm git --workspacepath "."  --tokenfile ./sltoken.txt
+          BUILD_DIR: "dist"
+          SL_BUILD_DIR: "sl_dist"
+          NODE_DEBUG: sl
+          BABYLON_PLUGINS: "jsx,typescript"
+        run: npx slnodejs scan --buildsessionidfile buildSessionId --scm git --workspacepath ${BUILD_DIR}  --tokenfile ./sltoken.txt
         #--excludedpaths "${EXCLUDE}" --projectroot "."
-        #--instrumentForBrowsers --babylonPlugins "${BABYLON_PLUGINS}" --outputpath sl_build
-        #BABYLON_PLUGINS="jsx,typescript"
-        #BUILD_DIR_PATH="dist"
+        #--instrumentForBrowsers --babylonPlugins "${BABYLON_PLUGINS}" --outputpath sl_dist
 
       - name: SeaLights tests start
         run: npx slnodejs start --teststage alltests --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
@@ -113,8 +116,8 @@ jobs:
 
       - name: SeaLights tests end
         run: |
-          npx istanbul-merge --out coverage.json packages/backend/coverage/coverage-final.json packages/app/coverage/coverage-final.json
-          npx slnodejs nycReport --teststage alltests --buildsessionidfile buildSessionId --report coverage.json --tokenfile ./sltoken.txt
+          #npx istanbul-merge --out coverage.json packages/backend/coverage/coverage-final.json packages/app/coverage/coverage-final.json
+          #npx slnodejs nycReport --teststage alltests --buildsessionidfile buildSessionId --report coverage.json --tokenfile ./sltoken.txt
           npx slnodejs end --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
 
       - name: Remove SeaLights secrets
