@@ -70,7 +70,8 @@ jobs:
 
       - name: Install SeaLights Agent
         run: |
-          yarn add jest-junit slnodejs@6.1.1042 --dev #istanbul-merge
+          yarn add jest-junit slnodejs@6.1.1042 playwright@1.53.0 --dev #istanbul-merge
+          yarn playwright install chromium
           yarn run build --continue --affected
 
       - name: Write SeaLights token into file
@@ -105,7 +106,7 @@ jobs:
         run: npx slnodejs start --teststage alltests --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
 
       - name: Run Playwright tests
-        run: npx playwright test
+        run: npx playwright test --project=showcase
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
