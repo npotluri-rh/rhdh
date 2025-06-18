@@ -1,6 +1,5 @@
 import * as k8s from "@kubernetes/client-node";
 import { V1ConfigMap } from "@kubernetes/client-node";
-import { LOGGER } from "./logger";
 import * as yaml from "js-yaml";
 
 export class KubeClient {
@@ -40,14 +39,14 @@ export class KubeClient {
       this.coreV1Api = this.kc.makeApiClient(k8s.CoreV1Api);
       this.k8sCustomAPI = this.kc.makeApiClient(k8s.CustomObjectsApi);
     } catch (e) {
-      LOGGER.info(e);
+      console.log(e);
       throw e;
     }
   }
 
   async getConfigMap(configmapName: string, namespace: string) {
     try {
-      LOGGER.info(
+      console.log(
         `Getting configmap ${configmapName} from namespace ${namespace}`,
       );
       return await this.coreV1Api.readNamespacedConfigMap(
@@ -55,17 +54,17 @@ export class KubeClient {
         namespace,
       );
     } catch (e) {
-      LOGGER.error(e.body?.message);
+      console.log(e.body?.message);
       throw e;
     }
   }
 
   async listConfigMaps(namespace: string) {
     try {
-      LOGGER.info(`Listing configmaps in namespace ${namespace}`);
+      console.log(`Listing configmaps in namespace ${namespace}`);
       return await this.coreV1Api.listNamespacedConfigMap(namespace);
     } catch (e) {
-      LOGGER.error(e.body?.message);
+      console.error(e.body?.message);
       throw e;
     }
   }
@@ -83,15 +82,15 @@ export class KubeClient {
       const configMapsResponse = await this.listConfigMaps(namespace);
       const configMaps = configMapsResponse.body.items;
       
-      LOGGER.info(`Found ${configMaps.length} ConfigMaps in namespace ${namespace}`);
+      console.log(`Found ${configMaps.length} ConfigMaps in namespace ${namespace}`);
       configMaps.forEach(cm => {
-        LOGGER.info(`ConfigMap: ${cm.metadata?.name}`);
+        console.log(`ConfigMap: ${cm.metadata?.name}`);
       });
       
       for (const name of this.appConfigNames) {
         const found = configMaps.find(cm => cm.metadata?.name === name);
         if (found) {
-          LOGGER.info(`Found app config ConfigMap: ${name}`);
+          console.log(`Found app config ConfigMap: ${name}`);
           return name;
         }
       }
@@ -100,24 +99,23 @@ export class KubeClient {
       for (const cm of configMaps) {
         if (cm.data && Object.keys(cm.data).some(key => 
           key.includes('app-config') && key.endsWith('.yaml'))) {
-          LOGGER.info(`Found ConfigMap with app-config data: ${cm.metadata?.name}`);
+          console.log(`Found ConfigMap with app-config data: ${cm.metadata?.name}`);
           return cm.metadata?.name || '';
         }
       }
       
       throw new Error(`No suitable app-config ConfigMap found in namespace ${namespace}`);
     } catch (error) {
-      LOGGER.error(`Error finding app config ConfigMap: ${error}`);
+      console.error(`Error finding app config ConfigMap: ${error}`);
       throw error;
     }
   }
 
   async getNamespaceByName(name: string): Promise<k8s.V1Namespace | null> {
     try {
-      LOGGER.debug(`Getting namespace ${name}.`);
       return (await this.coreV1Api.readNamespace(name)).body;
     } catch (e) {
-      LOGGER.error(`Error getting namespace ${name}: ${e.body?.message}`);
+      console.log(`Error getting namespace ${name}: ${e.body?.message}`);
       throw e;
     }
   }
@@ -150,10 +148,10 @@ export class KubeClient {
 
   async getSecret(secretName: string, namespace: string) {
     try {
-      LOGGER.info(`Getting secret ${secretName} from namespace ${namespace}`);
+      console.log(`Getting secret ${secretName} from namespace ${namespace}`);
       return await this.coreV1Api.readNamespacedSecret(secretName, namespace);
     } catch (e) {
-      LOGGER.error(e.body.message);
+      console.log(e.body.message);
       throw e;
     }
   }
@@ -170,7 +168,7 @@ export class KubeClient {
       const options = {
         headers: { "Content-type": k8s.PatchUtils.PATCH_FORMAT_JSON_PATCH },
       };
-      LOGGER.info(
+      console.log(
         `Updating configmap ${configmapName} in namespace ${namespace}`,
       );
       await this.coreV1Api.patchNamespacedConfigMap(
@@ -185,7 +183,7 @@ export class KubeClient {
         options,
       );
     } catch (e) {
-      LOGGER.error(e.statusCode, e);
+      console.log(e.statusCode, e);
       throw e;
     }
   }
@@ -200,10 +198,10 @@ export class KubeClient {
       let actualConfigMapName = configMapName;
       try {
         await this.getConfigMap(configMapName, namespace);
-        LOGGER.info(`Using provided ConfigMap name: ${configMapName}`);
+        console.log(`Using provided ConfigMap name: ${configMapName}`);
       } catch (error) {
         if (error.response?.statusCode === 404) {
-          LOGGER.info(`ConfigMap ${configMapName} not found, searching for alternatives...`);
+          console.log(`ConfigMap ${configMapName} not found, searching for alternatives...`);
           actualConfigMapName = await this.findAppConfigMap(namespace);
         } else {
           throw error;
@@ -216,8 +214,8 @@ export class KubeClient {
       );
       const configMap = configMapResponse.body;
 
-      LOGGER.info(`Using ConfigMap: ${actualConfigMapName}`);
-      LOGGER.info(`Available data keys: ${Object.keys(configMap.data || {}).join(', ')}`);
+      console.log(`Using ConfigMap: ${actualConfigMapName}`);
+      console.log(`Available data keys: ${Object.keys(configMap.data || {}).join(', ')}`);
 
       // Find the correct data key dynamically
       let dataKey: string | undefined;
@@ -252,7 +250,7 @@ export class KubeClient {
         throw new Error(`No suitable YAML data key found in ConfigMap '${actualConfigMapName}'. Available keys: ${dataKeys.join(', ')}`);
       }
       
-      LOGGER.info(`Using data key: ${dataKey}`);
+      console.log(`Using data key: ${dataKey}`);
       const appConfigYaml = configMap.data[dataKey];
       
       if (!appConfigYaml) {
@@ -266,9 +264,9 @@ export class KubeClient {
         throw new Error(`Invalid app-config structure in ConfigMap '${actualConfigMapName}'. Expected 'app' section not found.`);
       }
 
-      LOGGER.info(`Current title: ${appConfigObj.app.title}`);
+      console.log(`Current title: ${appConfigObj.app.title}`);
       appConfigObj.app.title = newTitle;
-      LOGGER.info(`New title: ${newTitle}`);
+      console.log(`New title: ${newTitle}`);
       
       configMap.data[dataKey] = yaml.dump(appConfigObj);
 
@@ -294,7 +292,7 @@ export class KubeClient {
           "Content-type": k8s.PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH,
         },
       };
-      LOGGER.info(`Updating secret ${secretName} in namespace ${namespace}`);
+      console.log(`Updating secret ${secretName} in namespace ${namespace}`);
       await this.coreV1Api.patchNamespacedSecret(
         secretName,
         namespace,
@@ -307,19 +305,19 @@ export class KubeClient {
         options,
       );
     } catch (e) {
-      LOGGER.error(e.statusCode, e.body.message);
+      console.log(e.statusCode, e.body.message);
       throw e;
     }
   }
 
   async createCongifmap(namespace: string, body: V1ConfigMap) {
     try {
-      LOGGER.info(
+      console.log(
         `Creating configmap ${body.metadata.name} in namespace ${namespace}`,
       );
       return await this.coreV1Api.createNamespacedConfigMap(namespace, body);
     } catch (err) {
-      LOGGER.error(err.body.message);
+      console.log(err.body.message);
       throw err;
     }
   }
@@ -328,7 +326,7 @@ export class KubeClient {
     const watch = new k8s.Watch(this.kc);
     try {
       await this.coreV1Api.deleteNamespace(namespace);
-      LOGGER.info(`Namespace '${namespace}' deletion initiated.`);
+      console.log(`Namespace '${namespace}' deletion initiated.`);
 
       await new Promise<void>((resolve, reject) => {
         watch.watch(
@@ -336,14 +334,14 @@ export class KubeClient {
           {},
           (type) => {
             if (type === "DELETED") {
-              LOGGER.info(`Namespace '${namespace}' has been deleted.`);
+              console.log(`Namespace '${namespace}' has been deleted.`);
               resolve();
             }
           },
           (err) => {
             if (err && err.statusCode === 404) {
               // Namespace was already deleted or does not exist
-              LOGGER.info(`Namespace '${namespace}' is already deleted.`);
+              console.log(`Namespace '${namespace}' is already deleted.`);
               resolve();
             } else {
               reject(err);
@@ -353,7 +351,7 @@ export class KubeClient {
         );
       });
     } catch (err) {
-      LOGGER.error("Error deleting or waiting for namespace deletion:", err);
+      console.log("Error deleting or waiting for namespace deletion:", err);
       throw err;
     }
   }
@@ -362,11 +360,11 @@ export class KubeClient {
     const nsList = await this.coreV1Api.listNamespace();
     const ns = nsList.body.items.map((ns) => ns.metadata.name);
     if (ns.includes(namespace)) {
-      LOGGER.info(`Delete and re-create namespace ${namespace}`);
+      console.log(`Delete and re-create namespace ${namespace}`);
       try {
         await this.deleteNamespaceAndWait(namespace);
       } catch (err) {
-        LOGGER.error(err);
+        console.log(err);
         throw err;
       }
     }
@@ -377,21 +375,21 @@ export class KubeClient {
           name: namespace,
         },
       });
-      LOGGER.info(`Created namespace ${createNamespaceRes.body.metadata.name}`);
+      console.log(`Created namespace ${createNamespaceRes.body.metadata.name}`);
     } catch (err) {
-      LOGGER.error(err.body.message);
+      console.log(err.body.message);
       throw err;
     }
   }
 
   async createSecret(secret: k8s.V1Secret, namespace: string) {
     try {
-      LOGGER.info(
+      console.log(
         `Creating secret ${secret.metadata.name} in namespace ${namespace}`,
       );
       await this.coreV1Api.createNamespacedSecret(namespace, secret);
     } catch (err) {
-      LOGGER.error(err.body.message);
+      console.log(err.body.message);
       throw err;
     }
   }
