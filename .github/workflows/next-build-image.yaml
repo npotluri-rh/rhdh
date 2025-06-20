@@ -110,13 +110,6 @@ jobs:
           cd ./e2e-tests && yarn install --immutable
           npx playwright test --project=showcase && cd ..
 
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 1
-
       - name: Run tests
         run: |
           yarn run test --continue --affected
