@@ -16,12 +16,13 @@ jobs:
 
     - name: Install Playwright Browsers
       run: |
+        cd ./e2e-tests
+        yarn install --immutable
         yarn run build --continue --affected
         yarn playwright install chromium
 
     - name: Run Playwright tests
       run: |
-          cd ./e2e-tests && yarn run build --continue --affected && yarn install --immutable
           npx playwright test --project=any-test && cd ..
 
     - uses: actions/upload-artifact@v4
