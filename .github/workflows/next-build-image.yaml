@@ -72,7 +72,6 @@ jobs:
         run: |
           yarn add jest-junit slnodejs@6.1.1042 playwright@1.53.0 @playwright/test lodash --dev #istanbul-merge
           yarn playwright install chromium
-          yarn run build --continue --affected
 
       - name: Write SeaLights token into file
         run: echo "${SEALIGHTS_AGENT_TOKEN}" > sltoken.txt
@@ -107,7 +106,7 @@ jobs:
 
       - name: Run Playwright tests
         run: |
-          cd ./e2e-tests && yarn install --immutable
+          cd ./e2e-tests && yarn run build --continue --affected
           npx playwright test --project=any-test && cd ..
 
       - uses: actions/upload-artifact@v4
