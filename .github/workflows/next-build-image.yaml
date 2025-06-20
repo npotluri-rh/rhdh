@@ -106,7 +106,7 @@ jobs:
         run: npx slnodejs start --teststage alltests --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
 
       - name: Run Playwright tests
-        run: npx playwright test --project=chromium
+        run: npx playwright test
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
