@@ -18,11 +18,11 @@ jobs:
       run: |
         yarn install --immutable
         yarn run build --continue --affected
-        yarn playwright install chromium
 
     - name: Run Playwright tests
       run: |
           cd ./e2e-tests
+          yarn playwright install chromium
           yarn install --immutable
           npx playwright test --project=any-test && cd ..
 
