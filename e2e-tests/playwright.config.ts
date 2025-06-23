@@ -2,6 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 process.env.JOB_NAME = process.env.JOB_NAME || "";
 process.env.IS_OPENSHIFT = process.env.IS_OPENSHIFT || "";
+process.env.RDS2 = process.env.RDS2 || 'rhdhqe-rds-v15-8.cx6ygmy4go45.eu-north-1.rds.amazonaws.com';
+process.env.RDS3 = process.env.RDS3 || 'rhdhqe-rds-v14-13.cx6ygmy4go45.eu-north-1.rds.amazonaws.com';
+process.env.BASE_URL = process.env.BASE_URL || 'https://rhdh-backstage-rhdh-main.roks-us-east-quality-a9805650830b22c3aee243e51d79565d-0000.us-east.containers.appdomain.cloud/';
 
 const k8sSpecificConfig = {
   use: {

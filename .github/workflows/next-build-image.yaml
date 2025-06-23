@@ -108,7 +108,7 @@ jobs:
       - name: Run Playwright tests
         run: |
           cd ./e2e-tests && yarn install --immutable
-          npx playwright test --project=showcase && cd ..
+          npx playwright test --project=any-test && cd ..
 
       - name: Run tests
         run: |
