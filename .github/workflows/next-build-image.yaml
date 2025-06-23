@@ -106,6 +106,10 @@ jobs:
         run: npx slnodejs start --teststage alltests --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
 
       - name: Run Playwright tests
+        env:
+          RDS_2_HOST: "rhdhqe-rds-v15-8.cx6ygmy4go45.eu-north-1.rds.amazonaws.com"
+          RDS_3_HOST: "rhdhqe-rds-v14-13.cx6ygmy4go45.eu-north-1.rds.amazonaws.com"
+          BASE_URL : "https://rhdh-backstage-rhdh-main.roks-us-east-quality-a9805650830b22c3aee243e51d79565d-0000.us-east.containers.appdomain.cloud/"
         run: |
           cd ./e2e-tests && yarn install --immutable
           npx playwright test --project=any-test && cd ..
