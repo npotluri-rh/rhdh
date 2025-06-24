@@ -132,7 +132,7 @@ jobs:
       - name: SeaLights tests end
         if: always()
         run: |
-          npx slnodejs nycReport --teststage e2e-tests --buildsessionid $BUILD_SESSION_ID --report ./e2e-tests/test-e2e-results.json --tokenfile ./sltoken.txt
+          npx slnodejs uploadReports --teststage e2e-tests --buildsessionid $BUILD_SESSION_ID --reportfile ./e2e-tests/test-results/junit-report.xml --tokenfile ./sltoken.txt
           npx slnodejs end --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
 
       - name: Remove SeaLights secrets

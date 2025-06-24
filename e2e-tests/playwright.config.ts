@@ -26,7 +26,7 @@ export default defineConfig({
   workers: 3,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['json', {  outputFile: 'test-e2e-results.json' }]
+    ['junit', { outputFile: 'test-results/junit-report.xml' }],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
