@@ -127,7 +127,7 @@ jobs:
           BASE_URL : "https://rhdh-backstage-rhdh-main.roks-us-east-quality-a9805650830b22c3aee243e51d79565d-0000.us-east.containers.appdomain.cloud/"
         run: |
           cd ./e2e-tests && yarn install --immutable
-          npx playwright test --project=any-test && cd ..
+          npx playwright test --project=showcase --reporter=junit && cd ..
 
       - name: SeaLights tests end
         if: always()
