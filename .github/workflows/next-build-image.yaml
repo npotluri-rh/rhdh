@@ -86,7 +86,7 @@ jobs:
           LATEST_COMMIT_SHA: ${{ github.sha }}
         run: |
           echo "BUILD_TIME=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
-          npx slnodejs config --tokenfile ./sltoken.txt --appname $SL_APP_NAME --branch $SL_BRANCH_NAME --build "$BUILD_TIME:$LATEST_COMMIT_SHA" --useIstanbul "true"
+          npx slnodejs config --tokenfile ./sltoken.txt --appname $SL_APP_NAME --branch $SL_BRANCH_NAME --build "$BUILD_TIME:$LATEST_COMMIT_SHA"
 
       - name: SeaLights initial scan
         env:
