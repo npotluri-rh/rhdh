@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2020",
+    "sourceMap": true,
     "lib": ["es2020", "dom"],
     "types": ["@playwright/test", "node"],
     "esModuleInterop": true,
