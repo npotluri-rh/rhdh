@@ -53,15 +53,7 @@
     "yaml": "^2.8.0"
   },
   "jest": {
-    "testTimeout": 20000,
-    "reporters": [ "default",
-      [
-        "jest-junit",
-        {
-          "outputName": "junit-results.xml"
-        }
-      ]
-    ]
+    "testTimeout": 20000
   },
   "packageManager": "yarn@3.8.7"
 }
