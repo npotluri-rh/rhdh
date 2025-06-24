@@ -70,7 +70,7 @@ jobs:
 
       - name: Install SeaLights Agent
         run: |
-          yarn add jest-junit slnodejs@6.1.1042 playwright@1.53.0 @playwright/test lodash --dev #istanbul-merge
+          yarn add jest-junit slnodejs@6.1.1042 playwright@1.53.0 @playwright/test lodash istanbul-merge --dev
           yarn run build --continue --affected
           yarn playwright install chromium
 
@@ -81,7 +81,6 @@ jobs:
 
       - name: SeaLights config
         env:
-          SEALIGHTS_AGENT_TOKEN: ${{ secrets.SEALIGHTS_AGENT_TOKEN }}
           SL_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
           SL_APP_NAME: "rhdh"
           LATEST_COMMIT_SHA: ${{ github.sha }}
@@ -103,7 +102,7 @@ jobs:
         #--instrumentForBrowsers --babylonPlugins "${BABYLON_PLUGINS}" --outputpath sl_dist
 
       - name: SeaLights tests start
-        run: npx slnodejs start --teststage alltests --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
+        run: npx slnodejs start --teststage unittests --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
 
       - name: Run tests
         run: |
@@ -114,6 +113,12 @@ jobs:
 
       - name: Verify dynamic plugin wrappers
         run: cd ./dynamic-plugins && yarn test && cd ..
+
+      - name: SeaLights e2e-tests start
+        run: |
+          npx istanbul-merge --out coverage.json packages/backend/coverage/coverage-final.json packages/app/coverage/coverage-final.json packages/plugin-utils/coverage/coverage-final.json
+          npx slnodejs nycReport --teststage unittests --buildsessionidfile buildSessionId --report coverage.json --tokenfile ./sltoken.txt
+          npx slnodejs start --teststage e2e-tests --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
 
       - name: Run Playwright tests
         env:
@@ -127,8 +132,7 @@ jobs:
       - name: SeaLights tests end
         if: always()
         run: |
-          #npx istanbul-merge --out coverage.json packages/backend/coverage/coverage-final.json packages/app/coverage/coverage-final.json
-          #npx slnodejs nycReport --teststage alltests --buildsessionidfile buildSessionId --report coverage.json --tokenfile ./sltoken.txt
+          npx slnodejs uploadReports --teststage e2e-tests --buildsessionid $BUILD_SESSION_ID --reportfile e2e-tests/junit-results.xml --tokenfile ./sltoken.txt
           npx slnodejs end --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
 
       - name: Remove SeaLights secrets
