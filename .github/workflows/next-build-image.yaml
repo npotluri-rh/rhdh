@@ -91,15 +91,14 @@ jobs:
       - name: SeaLights initial scan
         env:
           SL_fileExtensions: ".js,.jsx,.ts,.tsx"
-          #EXCLUDE: "public/**/*.js,files/**/*.js"
           SCM_PROVIDER: "Github"
-          BUILD_DIR: "dist"
-          SL_BUILD_DIR: "sl_dist"
-          NODE_DEBUG: sl
-          BABYLON_PLUGINS: "jsx,typescript"
-        run: npx slnodejs scan --buildsessionidfile buildSessionId --scm git --workspacepath .  --tokenfile ./sltoken.txt --instrumentForBrowsers --babylonPlugins "${BABYLON_PLUGINS}" --outputpath sl_dist
-        #--excludedpaths "${EXCLUDE}" --projectroot "."
-        #--instrumentForBrowsers --babylonPlugins "${BABYLON_PLUGINS}" --outputpath sl_dist
+        run: |
+          npx slnodejs scan \
+          --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt \
+          --scm git --workspacepath . --projectroot "." --scanDotFolders false --excludedpaths "node_modules" \
+          --useRelativeSlMapping true --excludeSourceMapFiles 'skipAndDelete' \
+          --outputpath sl_dist --babylonPlugins "jsx,typescript"
+
 
       - name: SeaLights tests start
         run: npx slnodejs start --teststage unittests --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
@@ -127,12 +126,12 @@ jobs:
           BASE_URL : "https://rhdh-backstage-rhdh-main.roks-us-east-quality-a9805650830b22c3aee243e51d79565d-0000.us-east.containers.appdomain.cloud/"
         run: |
           cd ./e2e-tests && yarn install --immutable
-          npx playwright test --project=smoke-test && cd ..
+          npx playwright test --project=showcase-k8s && cd ..
 
       - name: SeaLights tests end
         if: always()
         run: |
-          npx slnodejs uploadReports --teststage e2e-tests --buildsessionid $BUILD_SESSION_ID --reportfile ./e2e-tests/test-results/junit-report.xml --tokenfile ./sltoken.txt
+          npx slnodejs uploadReports --teststage e2e-tests --buildsessionidfile buildSessionId --reportfile ./e2e-tests/test-results/junit-report.xml --tokenfile ./sltoken.txt
           npx slnodejs end --buildsessionidfile buildSessionId --tokenfile ./sltoken.txt
 
       - name: Remove SeaLights secrets
